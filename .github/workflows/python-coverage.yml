@@ -1,0 +1,45 @@
+name: Python Coverage
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest==8.4.1 pytest-cov coverage
+
+      - name: Run tests with coverage for src
+        run: |
+          pytest -vv --maxfail=1 --disable-warnings --cov=src --cov-report=term-missing --cov-report=xml
+
+      - name: Post coverage summary to pull request
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 90
+          MINIMUM_ORANGE: 70
+
+      - name: Enforce minimum coverage threshold
+        run: |
+          coverage report --fail-under=90
